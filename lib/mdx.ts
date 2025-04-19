@@ -64,28 +64,46 @@ export async function getAllPosts() {
 
 export async function getPostBySlug(slug: string) {
   try {
+    console.log(`Attempting to get post with slug: ${slug}`)
+
     if (!slug) {
       console.error('No slug provided')
       return null
     }
 
     const fullPath = path.join(process.cwd(), 'content', `${slug}.md`)
+    console.log(`Looking for file at path: ${fullPath}`)
 
     // Check if file exists first
     if (!fs.existsSync(fullPath)) {
       console.error(`File not found: ${fullPath}`)
+      // List available files for debugging
+      try {
+        const availableFiles = fs.readdirSync(
+          path.join(process.cwd(), 'content')
+        )
+        console.log(
+          `Available files in content directory: ${availableFiles.join(', ')}`
+        )
+      } catch (err) {
+        console.error('Error listing content directory:', err)
+      }
       return null
     }
 
+    console.log(`File found, reading contents`)
     const fileContents = fs.readFileSync(fullPath, 'utf8')
 
     // Parse the markdown file with gray-matter
+    console.log(`Parsing with gray-matter`)
     const { data, content } = matter(fileContents)
 
     // Convert markdown to HTML
+    console.log(`Converting markdown to HTML`)
     const processedContent = await remark().use(html).process(content)
 
     const contentHtml = processedContent.toString()
+    console.log(`Successfully processed post: ${slug}`)
 
     return {
       slug,

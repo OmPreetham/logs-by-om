@@ -22,12 +22,17 @@ export default function ClientBlogPost({
 
     async function loadPost() {
       try {
+        console.log(`Attempting to fetch post with slug: ${params.slug}`)
         const postData = await fetchPostBySlug(params.slug)
+        console.log(`Received response for slug ${params.slug}:`, postData)
 
         if (!isMounted) return
 
         if (!postData) {
-          setError('Post not found')
+          console.error(`Post not found for slug: ${params.slug}`)
+          setError(
+            `Post not found: "${params.slug}". Please check the URL and try again.`
+          )
           setLoading(false)
           return
         }
@@ -36,8 +41,12 @@ export default function ClientBlogPost({
         setLoading(false)
       } catch (err) {
         if (!isMounted) return
-        console.error('Error loading post:', err)
-        setError('Failed to load the post. Please try again.')
+        console.error(`Error loading post with slug ${params.slug}:`, err)
+        setError(
+          `Failed to load the post: ${
+            err instanceof Error ? err.message : 'Unknown error'
+          }. Please try again.`
+        )
         setLoading(false)
       }
     }
