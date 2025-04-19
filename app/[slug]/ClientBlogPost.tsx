@@ -1,31 +1,56 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import Link from "next/link"
-import Head from "next/head"
-import { notFound } from "next/navigation"
-import { registerServiceWorker } from "../pwa"
-import { fetchPostBySlug } from "@/lib/actions"
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
+import Head from 'next/head'
+import { notFound } from 'next/navigation'
+import { registerServiceWorker } from '../pwa'
+import { fetchPostBySlug } from '@/lib/actions'
 
-export default function ClientBlogPost({ params }: { params: { slug: string } }) {
+export default function ClientBlogPost({
+  params,
+}: {
+  params: { slug: string }
+}) {
   const [post, setPost] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true
+
     async function loadPost() {
-      const postData = await fetchPostBySlug(params.slug)
-      if (!postData) {
-        notFound()
+      try {
+        const postData = await fetchPostBySlug(params.slug)
+
+        if (!isMounted) return
+
+        if (!postData) {
+          setError('Post not found')
+          setLoading(false)
+          return
+        }
+
+        setPost(postData)
+        setLoading(false)
+      } catch (err) {
+        if (!isMounted) return
+        console.error('Error loading post:', err)
+        setError('Failed to load the post. Please try again.')
+        setLoading(false)
       }
-      setPost(postData)
-      setLoading(false)
     }
 
     loadPost()
 
     // Register service worker for PWA
     registerServiceWorker()
+
+    // Cleanup function
+    return () => {
+      isMounted = false
+    }
   }, [params.slug])
 
   if (loading) {
@@ -36,32 +61,49 @@ export default function ClientBlogPost({ params }: { params: { slug: string } })
     )
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p className="text-red-500 mb-4">{error}</p>
+        <Link
+          href="/"
+          className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+        >
+          ← back to home
+        </Link>
+      </div>
+    )
+  }
+
   if (!post) return notFound()
 
   // Create structured data for SEO
   const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
     headline: post.title,
     datePublished: post.date,
     author: {
-      "@type": "Person",
-      name: "Om Preetham Bandi",
+      '@type': 'Person',
+      name: 'Om Preetham Bandi',
     },
     publisher: {
-      "@type": "Person",
-      name: "Om Preetham Bandi",
+      '@type': 'Person',
+      name: 'Om Preetham Bandi',
     },
     mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": `https://logs.ompreetham.com/${post.slug}`,
+      '@type': 'WebPage',
+      '@id': `https://logs.ompreetham.com/${post.slug}`,
     },
   }
 
   return (
     <>
       <Head>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </Head>
       <main className="flex-1 flex flex-col items-center px-4 py-16 md:py-24">
         <motion.div
@@ -89,7 +131,9 @@ export default function ClientBlogPost({ params }: { params: { slug: string } })
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-serif tracking-tight mb-3">{post.title}</h1>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-serif tracking-tight mb-3">
+              {post.title}
+            </h1>
             <p className="text-sm text-neutral-400">{post.date}</p>
           </motion.header>
 
